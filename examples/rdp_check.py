@@ -19,7 +19,8 @@
 #   [x] Manage to grab the server's SSL key so we can finalize the whole
 #        authentication process (check [MS-CSSP] section 3.1.5)
 #
-
+from multiprocessing import Process
+from os import getenv
 from struct import pack, unpack
 
 from impacket.examples import logger
@@ -571,4 +572,17 @@ if __name__ == '__main__':
         from getpass import getpass
         password = getpass("Password:")
 
-    check_rdp(address, username, password, domain, options.hashes)
+    timeout_string = getenv('PROCESS_TIMEOUT', "10")
+    timeout = int(timeout_string)
+
+    print(f"Starting check_rdp with timeout={timeout}")
+
+    p = Process(target=check_rdp, name="check_rdp", args=(address, username, password, domain, options.hashes))
+    p.start()
+
+    p.join(timeout)
+
+    if p.is_alive():
+        p.terminate()
+        p.join()
+
